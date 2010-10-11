@@ -51,6 +51,10 @@ public abstract class HttpHandler implements Handler {
 
         // Request processing
         String requestLine = reader.readLine();
+        System.out.printf("Got request '%s'\n", requestLine);
+
+        skipHeaders(reader);
+
         Matcher lineMatcher = GETHEADRequest.matcher(requestLine);
         if (lineMatcher.matches()) {
             String method = lineMatcher.group(1);
@@ -91,6 +95,17 @@ public abstract class HttpHandler implements Handler {
 
         writer.flush();
         writer.close();
+    }
+
+    private void skipHeaders(BufferedReader reader) throws IOException {
+        // read and skip request headers
+        int length = 0;
+        do {
+            String line = reader.readLine();
+            length = line.length();
+            if (length > 0)
+                System.out.printf("Skipping header: '%s'\n", line);
+        } while (length > 0) ;
     }
 
     protected abstract Result serve(String uri, Response resp);
