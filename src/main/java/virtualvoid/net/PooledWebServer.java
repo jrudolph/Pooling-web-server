@@ -11,7 +11,7 @@ import java.util.concurrent.Executors;
 
 public class PooledWebServer {
     private final ExecutorService executor = Executors.newFixedThreadPool(30);
-    private final Handler handler = new PingHandler();
+    private final Handler handler = new StaticHttpFileHandler(new File("www"));
 
     public void run() throws IOException {
         ServerSocket theServer = new ServerSocket();
