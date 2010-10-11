@@ -1,43 +1,61 @@
 package virtualvoid.net;
 
+import java.io.File;
 import java.io.IOException;
-import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class PooledWebServer {
-    private final ExecutorService executor = Executors.newFixedThreadPool(30);
+    private final ExecutorService executor = Executors.newFixedThreadPool(1);
     private final Handler handler = new StaticHttpFileHandler(new File("www"));
 
     public void run() throws IOException {
-        ServerSocket theServer = new ServerSocket();
-        theServer.bind(new InetSocketAddress(Inet4Address.getByAddress(new byte[]{(byte) 192,(byte) 168,2,20}), 2020));
-        //theServer.bind(new InetSocketAddress(Inet4Address.getByAddress(new byte[]{127,0,0,1}), 8020));
-        System.out.println(theServer.getLocalSocketAddress());
+        ServerSocketChannel serverChannel = ServerSocketChannel.open();
+        serverChannel.configureBlocking(false);
+
+        ServerSocket theServer = serverChannel.socket();
+        theServer.bind(new InetSocketAddress(8020));
+
+        Selector selector = Selector.open();
+        serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
         while(true) {
-            final Socket client = theServer.accept();
-            //System.out.println("New connection: "+client);
-            executor.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    try {
-                        //System.out.println("Starting to handle connection: "+client);
-                        handler.handleConnection(client);
-                    } catch (IOException exception) {
-                        System.err.println("Error when handling request: "+exception.getMessage());
-                        exception.printStackTrace(System.err);
-                    } finally {
-                        if (!client.isClosed())
-                            client.close();
-                    }
-                    return null;
+            if (selector.select(1000) == 0)
+                // TODO: we are idle, so do cleanup
+                continue;
+
+            for (SelectionKey key: selector.selectedKeys()) {
+                if (key.isAcceptable()) {
+                    // we take it for granted that only the server channel is
+                    // registered for acception.
+                    SocketChannel clientChannel = serverChannel.accept();
+                    final Socket client = clientChannel.socket();
+
+                    executor.submit(new Callable<Void>() {
+                        @Override
+                        public Void call() throws Exception {
+                            try {
+                                handler.handleConnection(client);
+                            } catch (IOException exception) {
+                                System.err.println("Error when handling request: "+exception.getMessage());
+                                exception.printStackTrace(System.err);
+                            } finally {
+                                if (!client.isClosed())
+                                    client.close();
+                            }
+                            return null;
+                        }
+                    });
                 }
-            });
+            }
         }
     }
 
