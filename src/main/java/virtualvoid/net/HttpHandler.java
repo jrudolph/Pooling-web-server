@@ -43,13 +43,13 @@ public abstract class HttpHandler implements Handler {
     }
 
     @Override
-    public void handleConnection(Socket client) throws IOException {
+    public boolean handleConnection(Socket client) throws IOException {
         // fail if a read takes longer than 5s
         client.setSoTimeout(5000);
 
-        waitAndServeRequest(client);
+        return waitAndServeRequest(client);
     }
-    private void waitAndServeRequest(Socket client) throws IOException {
+    private boolean waitAndServeRequest(Socket client) throws IOException {
         final OutputStream os = client.getOutputStream();
         final Writer writer = new OutputStreamWriter(os);
 
@@ -102,10 +102,14 @@ public abstract class HttpHandler implements Handler {
 
                     // keep-alive logic for HTTP 1.1
                     if ("1.1".equals(version)) {
-                        client.setSoTimeout(20000);
-                        waitAndServeRequest(client);
+                        //client.setSoTimeout(20000);
 
-                        return;
+                        if (is.available() > 0) {
+                            System.out.println("More bits available");
+                            return waitAndServeRequest(client);
+                        }
+                        else
+                            return true;
                     }
                 }
             } else {
@@ -118,6 +122,8 @@ public abstract class HttpHandler implements Handler {
 
         writer.flush();
         writer.close();
+
+        return false;
     }
 
     private void skipHeaders(BufferedReader reader) throws IOException {

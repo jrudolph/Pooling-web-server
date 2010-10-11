@@ -10,7 +10,7 @@ import java.net.Socket;
  */
 public class PingHandler implements Handler {
     @Override
-    public void handleConnection(Socket client) throws IOException {
+    public boolean handleConnection(Socket client) throws IOException {
         byte[] buffer = new byte[100];
 
         InputStream is = client.getInputStream();
@@ -27,5 +27,6 @@ public class PingHandler implements Handler {
             os.write(buffer, 0, read);
         }
         client.close();
+        return false;
     }
 }

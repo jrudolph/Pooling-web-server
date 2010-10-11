@@ -43,6 +43,13 @@ public class StaticHttpFileHandler extends HttpHandler {
     protected Result serve(String uri, Response resp) {
         final File f = fileByPath(uri);
 
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
         if (f.exists() && f.isFile() && !f.isHidden()) {
             log("Serving '%s'", f);
             resp.addResponseHeader("Content-Type", mimeTypeByExtension(f));
@@ -66,6 +73,7 @@ public class StaticHttpFileHandler extends HttpHandler {
                 }
             };
         } else {
+            resp.addResponseHeader("Content-Length", "0");
             return new Result("404 File not found") {
                 @Override
                 protected void writeBody(OutputStream os) {

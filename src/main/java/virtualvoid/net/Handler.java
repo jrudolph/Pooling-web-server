@@ -4,9 +4,10 @@ import java.io.IOException;
 import java.net.Socket;
 
 /**
- * Handles an incoming connection. If the handler doesn't close the
- * socket, it's closed automatically.
+ * Handles an incoming connection. If the handler returns true, the socket is
+ * monitored for incoming data, in which case the socket is scheduled for another
+ * time of processing.
  */
 public interface Handler {
-    void handleConnection(Socket client) throws IOException;
+    boolean handleConnection(Socket client) throws IOException;
 }
