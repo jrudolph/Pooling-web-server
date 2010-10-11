@@ -37,6 +37,9 @@ public class PooledWebServer {
                     // we take it for granted that only the server channel is
                     // registered for acception.
                     SocketChannel clientChannel = serverChannel.accept();
+                    key.cancel();
+                    selector.selectNow();
+                    serverChannel.register(selector, SelectionKey.OP_ACCEPT);
                     final Socket client = clientChannel.socket();
 
                     executor.submit(new Callable<Void>() {
