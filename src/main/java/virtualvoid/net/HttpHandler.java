@@ -40,6 +40,9 @@ public abstract class HttpHandler implements Handler {
     }
     @Override
     public void handleConnection(Socket client) throws IOException {
+        // fail if a read takes longer than 5s
+        client.setSoTimeout(5000);
+
         final OutputStream os = client.getOutputStream();
         final Writer writer = new OutputStreamWriter(os);
 
