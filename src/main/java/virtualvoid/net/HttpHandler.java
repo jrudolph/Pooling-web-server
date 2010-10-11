@@ -1,5 +1,7 @@
 package virtualvoid.net;
 
+import static virtualvoid.net.Logging.log;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,7 +53,7 @@ public abstract class HttpHandler implements Handler {
 
         // Request processing
         String requestLine = reader.readLine();
-        System.out.printf("Got request '%s'\n", requestLine);
+        log("Got request '%s'", requestLine);
 
         skipHeaders(reader);
 
@@ -104,7 +106,7 @@ public abstract class HttpHandler implements Handler {
             String line = reader.readLine();
             length = line.length();
             if (length > 0)
-                System.out.printf("Skipping header: '%s'\n", line);
+                log("Skipping header: '%s'", line);
         } while (length > 0) ;
     }
 

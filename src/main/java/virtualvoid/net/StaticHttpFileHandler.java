@@ -1,5 +1,7 @@
 package virtualvoid.net;
 
+import static virtualvoid.net.Logging.log;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -42,7 +44,7 @@ public class StaticHttpFileHandler extends HttpHandler {
         final File f = fileByPath(uri);
 
         if (f.exists() && f.isFile() && !f.isHidden()) {
-            System.out.println("Serving "+f);
+            log("Serving '%s'", f);
             resp.addResponseHeader("Content-Type", mimeTypeByExtension(f));
             resp.addResponseHeader("Content-Length", Long.toString(f.length()));
 
