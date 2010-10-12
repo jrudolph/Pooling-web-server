@@ -72,8 +72,35 @@ public abstract class HttpHandler implements Handler {
                     headers.put(matcher.group(1), matcher.group(2).toLowerCase());
                 else
                     log("Skipping invalid header: '%s'", line);
+            }
         } while (length > 0) ;
+
         return headers;
+    }
+    private boolean shouldKeepAlive(Map<String, String> headers, String version) {
+        boolean hasConnectionKeepAlive =
+            headers.containsKey("Connection") &&
+            headers.get("Connection").contains("keep-alive");
+        boolean hasConnectionClose =
+            headers.containsKey("Connection") &&
+            headers.get("Connection").contains("close");
+
+        // Keep-Alive in HTTP/1.0: Not specified but implementations use
+        // header "Connection: Keep-Alive" to flag a persistent connection.
+        // The receiver has to acknowledge the persistent connection with a response header
+        // "Connection: Keep-Alive" and possibly additional information with the header
+        // "Keep-Alive: [...]"
+        // see http://ftp.ics.uci.edu/pub/ietf/http/hypermail/1995q4/0063.html
+        //
+        // In HTTP/1.1 (RFC 2616): A connection is considered persistent
+        // by default. The sender can flag a connection close with the request header
+        // "Connection: close"
+        return
+            ("1.0".equals(version) &&
+             hasConnectionKeepAlive
+            ) ||
+            ("1.1".equals(version) &&
+             !hasConnectionClose);
     }
 
     @Override
@@ -115,20 +142,25 @@ public abstract class HttpHandler implements Handler {
                     Result res = serve(uri);
                     res.addHeaders();
 
+                    boolean keepAlive = shouldKeepAlive(headers, version);
                     writer.append("HTTP/")
                         .append(version)
                         .append(' ')
                         .append(res.getResultCode())
                         .append("\r\n")
-                        .append(res.getHeaders())
-                        .append("\r\n");
+                        .append(res.getHeaders());
+
+                    if (keepAlive && "1.0".equals(version))
+                        writer.append("Connection: keep-alive\r\n");
+
+                    writer.append("\r\n");
 
                     writer.flush();
+
                     if (!onlyHeader)
                         res.writeBody(os);
 
-                    // keep-alive logic for HTTP 1.1
-                    if ("1.1".equals(version)) {
+                    if (keepAlive) {
                         client.setSoTimeout(20000);
                         waitAndServeRequest(client);
 
