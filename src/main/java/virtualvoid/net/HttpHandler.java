@@ -105,13 +105,13 @@ public abstract class HttpHandler implements Handler {
     }
 
     @Override
-    public void handleConnection(Socket client) throws IOException {
+    public boolean handleConnection(Socket client) throws IOException {
         client.setSoTimeout(Settings.firstReadTimeout);
 
-        waitAndServeRequest(client);
+        return waitAndServeRequest(client);
     }
     final static Pattern GETHEADRequest = Pattern.compile("(GET|HEAD) ([^ ]+) HTTP/(\\d\\.\\d)");
-    private void waitAndServeRequest(Socket client) throws IOException {
+    private boolean waitAndServeRequest(Socket client) throws IOException {
         final OutputStream os = client.getOutputStream();
         final Writer writer = new OutputStreamWriter(os);
 
@@ -163,12 +163,7 @@ public abstract class HttpHandler implements Handler {
                     if (!onlyHeader)
                         res.writeBody(os);
 
-                    if (keepAlive) {
-                        client.setSoTimeout(Settings.keepAliveTimeout);
-                        waitAndServeRequest(client);
-
-                        return;
-                    }
+                    return keepAlive;
                 }
             } else {
                 System.err.printf("Bad Request: '%s'\n", requestLine);
@@ -180,5 +175,7 @@ public abstract class HttpHandler implements Handler {
 
         writer.flush();
         writer.close();
+
+        return false;
     }
 }
