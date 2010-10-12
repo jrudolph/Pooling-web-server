@@ -8,7 +8,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.net.Socket;
 import java.util.regex.Matcher;
@@ -97,13 +96,12 @@ public abstract class HttpHandler implements Handler {
             if (!("1.0".equals(version) || "1.1".equals(version)))
                 fail(writer, "501 Version not implemented "+version);
             else {
-                final StringWriter headerBuffer = new StringWriter();
                 Result res = serve(uri);
 
                 writer.append("HTTP/1.0 ")
                     .append(res.getResultCode())
                     .append("\r\n")
-                    .append(headerBuffer.getBuffer().toString())
+                    .append(res.getHeaders())
                     .append("\r\n");
 
                 writer.flush();
