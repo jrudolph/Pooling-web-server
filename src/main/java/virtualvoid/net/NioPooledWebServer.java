@@ -14,10 +14,33 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+/**
+ * A pooling web server using NIO and selection for keep-alive handling.
+ * The main thread selects both on waiting for accepting new connections as well as for new data arriving
+ * on old connections in which cases it schedules the connections for processing on the pool.
+ * The main idea is that connections with keep-alive are handed back to the main thread after
+ * processing one request. That frees the processing thread for other tasks.
+ *
+ * The complexities here arise from several problems with Java's NIO API. First, only the thread
+ * holding the selector should operate on it. This means we have to monitor the threads from the
+ * pool for finished but keep-alive connections and register them with the selector. Second,
+ * there's a bug in NIO, which makes Selector.select return even if no channels are selected when
+ * before a connection was closed in the wrong moment. The workaround is to cancel the selection
+ * every time and reregister it with the selector.
+ * (see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6403933)
+ *
+ * Third, we have to manage timeouts ourselves. We do this by running over the list of connections
+ * each x seconds and check if the timestamp in the attachment is older than the configured timeout,
+ * in which case the connection is closed.
+ */
 public class NioPooledWebServer {
     private final ExecutorService executor = Settings.createExecutor();
     private final ExecutorCompletionService<SocketChannel> keepAliveChannels = new ExecutorCompletionService<SocketChannel>(executor);
 
+    /**
+     * Check the pool for completion of one or more of its task and in case it's keep-alive
+     * register the connection with the selector.
+     */
     private void registerKeepAliveChannels(Selector selector) throws IOException, InterruptedException {
         long now = System.currentTimeMillis();
         Future<SocketChannel> alive;
@@ -33,6 +56,10 @@ public class NioPooledWebServer {
             }
         }
     }
+    /**
+     * Each x seconds check all registrations if they have timed-out in which case the
+     * corresponding channel is closed.
+     */
     private long cleanupKeepAliveChannels(long lastCleanup, Set<SelectionKey> keys) throws IOException {
         long now = System.currentTimeMillis();
         if (now - lastCleanup > 5000) {
@@ -74,9 +101,15 @@ public class NioPooledWebServer {
                     SocketChannel clientChannel = serverChannel.accept();
                     clientChannel.configureBlocking(true);
                     schedule(clientChannel);
+
+                    // workaround: cancel the key and reregister it later on
+                    // see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6403933
                     key.cancel();
                 } else if (key.isReadable()) {
                     SocketChannel clientChannel = (SocketChannel) key.channel();
+
+                    // cancel the registration, we go back into blocking mode
+                    // and let the processing be done inside of an own thread
                     key.cancel();
                     clientChannel.configureBlocking(true);
                     Logging.log("Reusing channel %s", clientChannel);
@@ -96,17 +129,17 @@ public class NioPooledWebServer {
                 try {
                     boolean keepAlive = Settings.handler.handleConnection(client);
 
+                    // if the connection should be kept alive, return it to the executor
+                    // for `registerKeepAliveChannels` to pick it up.
                     if (keepAlive)
                         return clientChannel;
-                    else if (!client.isClosed())
-                        client.close();
                 } catch (IOException exception) {
                     System.err.println("Error when handling request: "+exception.getMessage());
                     exception.printStackTrace(System.err);
-
-                    if (!client.isClosed())
-                        client.close();
                 }
+                if (!client.isClosed())
+                    client.close();
+
                 return null;
             }
         });
