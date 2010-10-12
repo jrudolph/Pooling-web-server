@@ -6,17 +6,24 @@ Features:
  * Pooling using java.util.concurrent.Executor
  * Static file serving
  * Http Keep-alive handling
+ * Experimental implementation using pooling and nio
 
 Architecture:
 -------------
+This contains two implementations of a pooling webserver:
 
+SimplePooledWebServer:
 The main thread waits and accepts connections and then schedules processing of
 the connection with the executor. If keep-alive is enabled the thread keeps waiting
 for requests for a certain time.
 
+NioPooledWebServer:
+NioPooledWebServer is an experimental implementation, which uses java.nio to manage the currently idle
+keep-alive connections along with new connections in the main thread. See the source code for more explanation
+how this works.
+
 Classes:
 --------
-
 SimplePooledWebServer - The main class accepting connections and scheduling processing of requests
 Settings - Global configuration
 Handler - An abstraction of a component handling incoming requests in their own thread.
@@ -24,8 +31,19 @@ HttpHandler - An abstract handler doing basic Http Request/Response handling
 StaticHttpFileHandler - A HttpHandler serving static files from the file-system
 PingHandler - An example handler echoing requests directly back to the client
 
+NioPooledWebServer - A more sophisticated web server using both pools and java.nio to 
+                     manage keep-alive connections in the main thread.
+
 Notes:
 ------
 
 This is a proof of concept of a pooling web server. The real work is finding out the best settings
 for pooling and timeouts. 
+
+In a productive environment you would probably use existing solutions for pooling and socket handling. E.g.
+the Jetty webserver or Apache MINA.
+
+Run
+---
+With Maven installed, use `mvn exec:java` to run the simple webserver. Edit the pom.xml if you want to run the
+Nio-version.
