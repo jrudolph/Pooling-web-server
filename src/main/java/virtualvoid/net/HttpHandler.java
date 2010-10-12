@@ -106,8 +106,7 @@ public abstract class HttpHandler implements Handler {
 
     @Override
     public void handleConnection(Socket client) throws IOException {
-        // fail if a read takes longer than 5s
-        client.setSoTimeout(5000);
+        client.setSoTimeout(Settings.firstReadTimeout);
 
         waitAndServeRequest(client);
     }
@@ -126,7 +125,7 @@ public abstract class HttpHandler implements Handler {
             log("Got request '%s'", requestLine);
 
             // Headers have to be send continuously without to much pauses in between
-            client.setSoTimeout(2000);
+            client.setSoTimeout(Settings.headerTimeout);
             Map<String, String> headers = readHeaders(reader);
 
             Matcher lineMatcher = GETHEADRequest.matcher(requestLine);
@@ -144,6 +143,7 @@ public abstract class HttpHandler implements Handler {
                     res.addHeaders();
 
                     boolean keepAlive = shouldKeepAlive(headers, version);
+
                     writer.append("HTTP/")
                         .append(version)
                         .append(' ')
@@ -164,7 +164,7 @@ public abstract class HttpHandler implements Handler {
                         res.writeBody(os);
 
                     if (keepAlive) {
-                        client.setSoTimeout(20000);
+                        client.setSoTimeout(Settings.keepAliveTimeout);
                         waitAndServeRequest(client);
 
                         return;
