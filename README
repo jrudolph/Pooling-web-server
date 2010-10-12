@@ -1,0 +1,31 @@
+A simple pooling webserver
+==========================
+
+Features:
+---------
+ * Pooling using java.util.concurrent.Executor
+ * Static file serving
+ * Http Keep-alive handling
+
+Architecture:
+-------------
+
+The main thread waits and accepts connections and then schedules processing of
+the connection with the executor. If keep-alive is enabled the thread keeps waiting
+for requests for a certain time.
+
+Classes:
+--------
+
+SimplePooledWebServer - The main class accepting connections and scheduling processing of requests
+Settings - Global configuration
+Handler - An abstraction of a component handling incoming requests in their own thread.
+HttpHandler - An abstract handler doing basic Http Request/Response handling
+StaticHttpFileHandler - A HttpHandler serving static files from the file-system
+PingHandler - An example handler echoing requests directly back to the client
+
+Notes:
+------
+
+This is a proof of concept of a pooling web server. The real work is finding out the best settings
+for pooling and timeouts. 
