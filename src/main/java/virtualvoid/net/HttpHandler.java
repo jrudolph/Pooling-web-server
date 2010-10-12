@@ -11,6 +11,8 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -56,15 +58,22 @@ public abstract class HttpHandler implements Handler {
             .append("\r\n");
     }
 
-    private void skipHeaders(BufferedReader reader) throws IOException {
-        // read and skip request headers (for now)
+    private final static Pattern HeaderLine = Pattern.compile("([^:]*):\\s*(.*)");
+    private Map<String, String> readHeaders(BufferedReader reader) throws IOException {
+        Map<String, String> headers = new LinkedHashMap<String, String>();
+
         int length = 0;
         do {
             String line = reader.readLine();
             length = line.length();
-            if (length > 0)
-                log("Skipping header: '%s'", line);
+            if (length > 0) {
+                Matcher matcher = HeaderLine.matcher(line);
+                if (matcher.matches())
+                    headers.put(matcher.group(1), matcher.group(2).toLowerCase());
+                else
+                    log("Skipping invalid header: '%s'", line);
         } while (length > 0) ;
+        return headers;
     }
 
     @Override
@@ -90,7 +99,7 @@ public abstract class HttpHandler implements Handler {
 
             // Headers have to be send continuously without to much pauses in between
             client.setSoTimeout(2000);
-            skipHeaders(reader);
+            Map<String, String> headers = readHeaders(reader);
 
             Matcher lineMatcher = GETHEADRequest.matcher(requestLine);
             if (lineMatcher.matches()) {
