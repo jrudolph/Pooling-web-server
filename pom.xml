@@ -29,7 +29,7 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
-           <mainClass>virtualvoid.net.PooledWebServer</mainClass>
+           <mainClass>virtualvoid.net.SimplePooledWebServer</mainClass>
         </configuration>
       </plugin>
     </plugins>
