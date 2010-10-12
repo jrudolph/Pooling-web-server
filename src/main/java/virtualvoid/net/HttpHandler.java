@@ -50,10 +50,6 @@ public abstract class HttpHandler implements Handler {
         protected abstract void writeBody(OutputStream os) throws IOException;
     }
 
-
-
-    final static Pattern GETHEADRequest = Pattern.compile("(GET|HEAD) ([^ ]+) HTTP/(\\d\\.\\d)");
-
     private void fail(Writer writer, String code) throws IOException {
         writer.append("HTTP/1.0 ")
             .append(code)
@@ -71,6 +67,7 @@ public abstract class HttpHandler implements Handler {
         } while (length > 0) ;
     }
 
+    final static Pattern GETHEADRequest = Pattern.compile("(GET|HEAD) ([^ ]+) HTTP/(\\d\\.\\d)");
     @Override
     public void handleConnection(Socket client) throws IOException {
         // fail if a read takes longer than 5s
@@ -80,7 +77,7 @@ public abstract class HttpHandler implements Handler {
         final Writer writer = new OutputStreamWriter(os);
 
         final InputStream is = client.getInputStream();
-        // to read request bodies we would have to make sure to use correct encoding here
+        // FIXME: to read request bodies we would have to make sure to use correct encoding here
         final BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 
         // Request processing
