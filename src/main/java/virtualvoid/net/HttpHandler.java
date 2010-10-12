@@ -91,6 +91,7 @@ public abstract class HttpHandler implements Handler {
         // "Connection: Keep-Alive" and possibly additional information with the header
         // "Keep-Alive: [...]"
         // see http://ftp.ics.uci.edu/pub/ietf/http/hypermail/1995q4/0063.html
+        // and RFC 2068 ("19.7.1 Compatibility with HTTP/1.0 Persistent Connections")
         //
         // In HTTP/1.1 (RFC 2616): A connection is considered persistent
         // by default. The sender can flag a connection close with the request header
@@ -152,6 +153,8 @@ public abstract class HttpHandler implements Handler {
 
                     if (keepAlive && "1.0".equals(version))
                         writer.append("Connection: keep-alive\r\n");
+                    else if (!keepAlive && "1.1".equals(version))
+                        writer.append("Connection: close\r\n");
 
                     writer.append("\r\n");
 
