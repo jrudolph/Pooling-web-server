@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -13,16 +14,23 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * A simple pooling web server. You can define the behaviour by setting executor and handler.
+ * Variable executor specifies the pooling strategy to use. The handler is called in its own
+ * thread to handle an incoming connection.
+ */
 public class PooledWebServer {
     private final ExecutorService executor = Executors.newFixedThreadPool(1);
     private final Handler handler = new StaticHttpFileHandler(new File("www"));
+    private final SocketAddress endpoint =
+        new InetSocketAddress(8020);
 
     public void run() throws IOException {
         ServerSocketChannel serverChannel = ServerSocketChannel.open();
         serverChannel.configureBlocking(false);
 
         ServerSocket theServer = serverChannel.socket();
-        theServer.bind(new InetSocketAddress(8020));
+        theServer.bind(endpoint);
 
         Selector selector = Selector.open();
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);

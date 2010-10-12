@@ -8,6 +8,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+/**
+ * An HttpHandler which interprets URIs as files with paths relative to
+ * a root directory.
+ */
 public class StaticHttpFileHandler extends HttpHandler {
     private static final int BUFFERSIZE = 65536;
     private final File root;
@@ -40,13 +44,11 @@ public class StaticHttpFileHandler extends HttpHandler {
             return "application/octet-stream";
     }
     @Override
-    protected Result serve(String uri, Response resp) {
+    protected Result serve(String uri) {
         final File f = fileByPath(uri);
 
         if (f.exists() && f.isFile() && !f.isHidden()) {
             log("Serving '%s'", f);
-            resp.addResponseHeader("Content-Type", mimeTypeByExtension(f));
-            resp.addResponseHeader("Content-Length", Long.toString(f.length()));
 
             return new Result("200 OK") {
                 @Override
@@ -64,12 +66,20 @@ public class StaticHttpFileHandler extends HttpHandler {
                         is.close();
                     }
                 }
+                protected void addHeaders() {
+                    addResponseHeader("Content-Type", mimeTypeByExtension(f));
+                    addResponseHeader("Content-Length", Long.toString(f.length()));
+                }
             };
         } else {
             return new Result("404 File not found") {
                 @Override
                 protected void writeBody(OutputStream os) {
                     // No body for 404
+                }
+                @Override
+                protected void addHeaders() {
+                    addResponseHeader("Content-Length", "0");
                 }
             };
         }
