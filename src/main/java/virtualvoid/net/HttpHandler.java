@@ -41,7 +41,7 @@ public abstract class HttpHandler implements Handler {
         void addResponseHeader(String header, String value) {
             headerBuffer
                 .append(header)
-                .append(':')
+                .append(": ")
                 .append(value)
                 .append("\r\n");
         }
@@ -104,6 +104,7 @@ public abstract class HttpHandler implements Handler {
                     fail(writer, "501 Version not implemented "+version);
                 else {
                     Result res = serve(uri);
+                    res.addHeaders();
 
                     writer.append("HTTP/")
                         .append(version)
