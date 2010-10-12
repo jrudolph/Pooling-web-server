@@ -45,6 +45,9 @@ public class PooledWebServer {
                     // we take it for granted that only the server channel is
                     // registered for acception.
                     SocketChannel clientChannel = serverChannel.accept();
+
+                    // we have to re-register the key all the time because of
+                    // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6403933
                     key.cancel();
                     selector.selectNow();
                     serverChannel.register(selector, SelectionKey.OP_ACCEPT);
